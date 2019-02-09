@@ -1,25 +1,8 @@
 #include <SFML/Graphics.hpp>
 
-#define WINDOW_WIDTH 320
-#define WINDOW_HEIGHT 640
-
-#define GRID_WIDTH 10
-#define GRID_HEIGHT 20
-
-#define BLOCK_SIZE 32
-
-#define I 0
-#define J 1
-#define L 2
-#define O 3
-#define S 4
-#define T 5
-#define Z 6
-
-#define UP 0
-#define RIGHT 1
-#define DOWN 2
-#define LEFT 3
+constexpr int blockSize = 32;
+constexpr int gridWidth = 10, gridHeight = 20;
+constexpr int windowWidth = gridWidth * blockSize, windowHeight = gridHeight * blockSize;
 
 // Each tetromino is in a 4x4 grid
 // The 4x4 grid can be represent as a 16 bit integer
@@ -52,19 +35,6 @@ const uint16_t tetrominoes[7][4] = {
     {0x0C60, 0x4C80, 0xC600, 0x2640}, // 6 Z
 };
 
-struct tetromino
-{
-    uint16_t up, right, down, left;
-};
-
-struct tetromino i = {0x4444, 0x0F00, 0x2222, 0x00F0};
-struct tetromino j = {0x44C0, 0x8E00, 0x6440, 0x0E20};
-struct tetromino l = {0x4460, 0x0E80, 0xC440, 0x2E00};
-struct tetromino o = {0xCC00, 0xCC00, 0xCC00, 0xCC00};
-struct tetromino s = {0x06C0, 0x8C40, 0x6C00, 0x4620};
-struct tetromino t = {0x0E40, 0x4C40, 0x4E00, 0x4640};
-struct tetromino z = {0x0C60, 0x4C80, 0xC600, 0x2640};
-
 // Each cell in the 4x4 grid which contain the tetromino is either occupied or not
 bool cellIsOccupied(const uint16_t tetrominoWithDirection, int cellIndex)
 {
@@ -81,8 +51,8 @@ void drawBlock(const sf::Texture &blockTextures,
                sf::RenderWindow *window)
 {
     sf::Sprite blockSprite(blockTextures);
-    blockSprite.setTextureRect(sf::IntRect(BLOCK_SIZE * colorIndex, 0, // Offset
-                                           BLOCK_SIZE, BLOCK_SIZE));   // Size
+    blockSprite.setTextureRect(sf::IntRect(blockSize * colorIndex, 0, // Offset
+                                           blockSize, blockSize));   // Size
     blockSprite.setPosition(position);
     window->draw(blockSprite);
 }
@@ -91,8 +61,8 @@ sf::Vector2f getBlockPosition(const sf::Vector2f &tetrominoPosition,
                               int blockIndexInTetromino)
 {
     sf::Vector2f blockPosition;
-    blockPosition.x = tetrominoPosition.x + (blockIndexInTetromino % 4) * BLOCK_SIZE;
-    blockPosition.y = tetrominoPosition.x + (blockIndexInTetromino / 4) * BLOCK_SIZE;
+    blockPosition.x = tetrominoPosition.x + (blockIndexInTetromino % 4) * blockSize;
+    blockPosition.y = tetrominoPosition.x + (blockIndexInTetromino / 4) * blockSize;
     return blockPosition;
 }
 
@@ -118,29 +88,40 @@ void drawTetromino(const sf::Texture &blockTexture,
 
 int main()
 {
-    sf::RenderWindow mainWindow(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT),
+    // Declare and create a new window
+    sf::RenderWindow mainWindow(sf::VideoMode(windowWidth, windowHeight),
                                 "Tetris",
                                 sf::Style::Close | sf::Style::Titlebar);
+
+    // Limit the framerate to 60 frames per second
+    mainWindow.setFramerateLimit(60);
 
     sf::Texture blockTextures;
     blockTextures.loadFromFile("textures/blocks.png");
 
+    // The main loop - ends as soon as the window is closed
     while (mainWindow.isOpen())
     {
+        // Event processing
         sf::Event windowEvent;
 
         while (mainWindow.pollEvent(windowEvent))
         {
+            // Request for closing the window
             if (windowEvent.type == windowEvent.Closed)
             {
                 mainWindow.close();
             }
         }
-        int x = 32, y = 32;
+        
+        // Activate the window for OpenGL rendering
+        mainWindow.setActive();
+        
+        int x = 0, y = 0;
         sf::Vector2f position(x, y);
 
         mainWindow.clear(sf::Color::White);
-        drawTetromino(blockTextures, position, J, 0, &mainWindow);
+        drawTetromino(blockTextures, position, 6, 0, &mainWindow);
         mainWindow.display();
     }
 
