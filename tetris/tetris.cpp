@@ -1,3 +1,6 @@
+#include <time.h>
+#include <stdlib.h>
+
 #include <SFML/Graphics.hpp>
 
 constexpr int blockSize = 32;
@@ -35,13 +38,6 @@ const uint16_t tetrominoes[7][4] = {
     {0x0C60, 0x4C80, 0xC600, 0x2640}, // 6 Z
 };
 
-// Each cell in the 4x4 grid which contain the tetromino is either occupied or not
-bool cellIsOccupied(const uint16_t tetrominoWithDirection, int cellIndex)
-{
-    int bitIndex = 15 - cellIndex;
-    return (tetrominoWithDirection & (1 << bitIndex)) >> bitIndex;
-}
-
 // Tetromino's index match the color in tetures/blocks.png
 // [0, 1, 2, 3, 4, 5, 6]
 // [I, J, L, O, S, T, Z]
@@ -57,33 +53,42 @@ void drawBlock(const sf::Texture &blockTextures,
     window->draw(blockSprite);
 }
 
-sf::Vector2f getBlockPosition(const sf::Vector2f &tetrominoPosition,
-                              int blockIndexInTetromino)
-{
-    sf::Vector2f blockPosition;
-    blockPosition.x = tetrominoPosition.x + (blockIndexInTetromino % 4) * blockSize;
-    blockPosition.y = tetrominoPosition.x + (blockIndexInTetromino / 4) * blockSize;
-    return blockPosition;
-}
-
 void drawTetromino(const sf::Texture &blockTexture,
                    const sf::Vector2f &position,
                    int tetromino, int direction,
                    sf::RenderWindow *window)
 {
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            int blockIndex = i * 4 + j;
+    // Each cell in the 4x4 grid which contain the tetromino is either occupied or not
+    //    0   1   2   3
+    // 0 [ ] [ ] [ ] [ ]
+    // 1 [ ] [ ] [ ] [ ]
+    // 2 [ ] [ ] [ ] [ ]
+    // 3 [ ] [ ] [ ] [ ]
+    sf::Vector2f internalPosition(0, 0);
 
-            if (cellIsOccupied(tetrominoes[tetromino][direction], blockIndex))
-            {
-                drawBlock(blockTexture, getBlockPosition(position, blockIndex),
-                          tetromino, window);
-            }
+    for (uint16_t bitIndex = 0x8000; bitIndex > 0; bitIndex >>= 1)
+    {
+        if (tetrominoes[tetromino][direction] & bitIndex)
+        {
+            sf::Vector2f blockPosition(position.x + internalPosition.x * blockSize,
+                                       position.y + internalPosition.y * blockSize);
+            drawBlock(blockTexture,
+                      blockPosition,
+                      tetromino,
+                      window);
+        }
+
+        if (++internalPosition.x == 4)
+        {
+            internalPosition.x = 0;
+            ++internalPosition.y;
         }
     }
+}
+
+int randomTetromino()
+{
+    return rand() % sizeof(tetrominoes);
 }
 
 int main()
@@ -93,8 +98,12 @@ int main()
                                 "Tetris",
                                 sf::Style::Close | sf::Style::Titlebar);
 
+    // Enable vertical sync
+    mainWindow.setVerticalSyncEnabled(true);
     // Limit the framerate to 60 frames per second
     mainWindow.setFramerateLimit(60);
+
+    srand(time(NULL));
 
     sf::Texture blockTextures;
     blockTextures.loadFromFile("textures/blocks.png");
@@ -121,7 +130,8 @@ int main()
         sf::Vector2f position(x, y);
 
         mainWindow.clear(sf::Color::White);
-        drawTetromino(blockTextures, position, 6, 0, &mainWindow);
+        drawTetromino(blockTextures, position, 0, 0, &mainWindow);
+        
         mainWindow.display();
     }
 
